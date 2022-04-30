@@ -10,14 +10,12 @@ DROPLET_REGION=$(./_get_secret.sh 'droplet_region')
 DROPLET_SIZE=$(./_get_secret.sh 'droplet_size')
 DROPLET_IMAGE=$(./_get_secret.sh 'droplet_image')
 DROPLET_KEYS=$(./_get_keys.sh)
-
-
-
-
+DNS_HOSTNAME=$(./_get_secret.sh 'dns_hostname')
 
 DROPLET_ID=$(./_droplet_id.sh "${DROPLET_NAME}")
 
 if [[ -z "$DROPLET_ID" ]]; then
+  DROPLET_EXISTED=0
   echo "Droplet ${DROPLET_NAME} could not be found. Creating..."
 
   DROPLET_POST_BODY=$(echo "{}" | \
@@ -29,12 +27,13 @@ if [[ -z "$DROPLET_ID" ]]; then
                       jq --argjson v "true" '. += {with_droplet_agent: $v}' | \
                       jq -c)
 
-  RES=$(curl -s -X POST "https://api.digitalocean.com/v2/droplets" -H "${AUTH_HEADER}" \
+  RES=$(curl -s -X POST "${API}/v2/droplets" -H "${AUTH_HEADER}" \
         -H "Content-Type: application/json" \
         -d "$DROPLET_POST_BODY")
   DROPLET_ID=$(echo "$RES" | jq -r '.droplet.id')
   echo "Created droplet with id: ${DROPLET_ID}"
 else
+  DROPLET_EXISTED=1
   echo "Found existing droplet with id: ${DROPLET_ID}"
 fi
 
@@ -54,9 +53,19 @@ if [[ "$DROPLET_STATUS" != "active" ]]; then
   exit 5
 fi
 
+if [[ "$DROPLET_EXISTED" = "0" ]]; then
+  # just because the droplet says it's ready doesn't mean it's actually ready; so we can wait for another 30 seconds to give it time 
+  echo "Waiting for droplet..."
+  sleep 15
+  echo "Waiting for droplet..."
+  sleep 15
+fi
+
 echo "Droplet with id ${DROPLET_ID} is ready"
 DROPLET_ADDRESS=$(./_droplet_ip.sh "${DROPLET_ID}")
 echo "Droplet has public IP: ${DROPLET_ADDRESS}"
+
+./_update_dns.sh "$DNS_HOSTNAME" "$DROPLET_ADDRESS"
 
 echo "Connecting to host via SSH; you may need to approve the host fingerprint"
 SSH_HOST=$(ssh "root@${DROPLET_ADDRESS}" hostname)
@@ -83,3 +92,19 @@ ssh "root@${DROPLET_ADDRESS}" apt-get update
 
 echo "Installing docker..."
 ssh "root@${DROPLET_ADDRESS}" apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+echo "Creating traefik data directory..."
+ssh "root@${DROPLET_ADDRESS}" "mkdir -p /volumes/traefik"
+ssh "root@${DROPLET_ADDRESS}" "chmod -R a+rwx /volumes/traefik"
+
+echo "Looking for running traefik containers..."
+TRAEFIK_IDS=$(ssh "root@${DROPLET_ADDRESS}" "docker ps --filter 'name=traefik_frontend' -q")
+echo "Found: ${TRAEFIK_IDS}"
+
+if [[ -n "$TRAEFIK_IDS" ]]; then
+  echo "traefik_frontend container already exists; removing it"
+  ssh "root@${DROPLET_ADDRESS}" "docker rm --force traefik_frontend"
+fi
+
+echo "Starting traefik..."
+ssh "root@${DROPLET_ADDRESS}" "docker run -d --name traefik_frontend --restart=always -e TRAEFIK_PROVIDERS_DOCKER=true -p 80:80 -p 443:443 -v /var/run/docker.sock:/var/run/docker.sock -v /volumes/traefik:/data traefik:v2.6.3"

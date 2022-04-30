@@ -10,6 +10,7 @@ It will provision a server in Digital Ocean and configure it for hosting sites.
 - [curl](https://curl.se/)
 - a `secrets.json` file based on the model of `secrets.template.json`
 - at least one SSH key associated with your Digital Ocean account. The user running the script must be able to use this key via a bare `ssh` command. This SSH key must be added to the `droplet_ssh_keys` array in `secrets.json`.
+- a domain name configured in Digital Ocean; some record in this domain (from `secrets.json`) will be configured as an A record pointing to the created server
 
 ## Notes
 
