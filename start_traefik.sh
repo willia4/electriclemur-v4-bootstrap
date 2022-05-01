@@ -31,5 +31,21 @@ if [[ -n "$TRAEFIK_IDS" ]]; then
   ssh "root@${DROPLET_ADDRESS}" "docker rm --force traefik_frontend"
 fi
 
+CMD=""
+CMD+="docker run -d --name traefik_frontend --restart=always "
+CMD+="-e TRAEFIK_PROVIDERS_DOCKER=true "
+CMD+="-e TRAEFIK_ENTRYPOINTS_WEB_ADDRESS=:80 "
+CMD+="-e TRAEFIK_ENTRYPOINTS_WEBSECURE_ADDRESS=:443 "
+
+CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_EMAIL=james@jameswilliams.me "
+CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_STORAGE=/data/acme.json "
+CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_HTTPCHALLENGE_ENTRYPOINT=web "
+
+CMD+="-e TRAEFIK_LOG_LEVEL=DEBUG "
+CMD+="-p 80:80 -p 443:443 "
+CMD+="-v /var/run/docker.sock:/var/run/docker.sock "
+CMD+="-v /volumes/traefik:/data "
+CMD+="traefik:v2.6.3"
+
 echo "Starting traefik..."
-ssh "root@${DROPLET_ADDRESS}" "docker run -d --name traefik_frontend --restart=always -e TRAEFIK_PROVIDERS_DOCKER=true -p 80:80 -p 443:443 -v /var/run/docker.sock:/var/run/docker.sock -v /volumes/traefik:/data traefik:v2.6.3"
+ssh "root@${DROPLET_ADDRESS}" "$CMD"
