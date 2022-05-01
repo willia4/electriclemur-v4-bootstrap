@@ -13,5 +13,7 @@ if [[ -z "$DROPLET_ID" ]]; then
   exit 0
 fi
 
-echo "Deleting droplet ${DROPLET_NAME}"
-curl -s -X DELETE "${API}/v2/droplets/${DROPLET_ID}" -H "${AUTH_HEADER}"
+echo "To actually tear down ${DROPLET_NAME}, edit teardown.sh and uncomment out the last two lines"
+
+# echo "Deleting droplet ${DROPLET_NAME}"
+# curl -s -X DELETE "${API}/v2/droplets/${DROPLET_ID}" -H "${AUTH_HEADER}"
