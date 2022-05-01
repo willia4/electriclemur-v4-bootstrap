@@ -41,7 +41,7 @@ CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_EMAIL=james@jameswilliams.me "
 CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_STORAGE=/data/acme.json "
 CMD+="-e TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_HTTPCHALLENGE_ENTRYPOINT=web "
 
-CMD+="-e TRAEFIK_LOG_LEVEL=DEBUG "
+#CMD+="-e TRAEFIK_LOG_LEVEL=DEBUG "
 CMD+="-p 80:80 -p 443:443 "
 CMD+="-v /var/run/docker.sock:/var/run/docker.sock "
 CMD+="-v /volumes/traefik:/data "
