@@ -98,3 +98,5 @@ ssh "root@${DROPLET_ADDRESS}" "mkdir -p /volumes/traefik"
 ssh "root@${DROPLET_ADDRESS}" "chmod -R a+rwx /volumes/traefik"
 
 ./start_traefik.sh
+
+./start_mongo.sh
